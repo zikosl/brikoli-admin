@@ -1,0 +1,19 @@
+{
+  "name": "Brikoli Admin Dashboard",
+  "short_name": "Brikoli Admin",
+  "description": "Admin dashboard for managing Brikoli services, workers, clients, and requests.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f8",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/brikoli-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
