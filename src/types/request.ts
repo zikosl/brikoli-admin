@@ -22,6 +22,8 @@ export interface ServiceRequest {
   clientId: string;
   clientName: string;
   clientPhone: string;
+  clientPhoneKey?: string;
+  telegramId?: string;
   serviceId: string;
   serviceName: string;
   description: string;
@@ -37,6 +39,7 @@ export interface ServiceRequest {
   adminNotes: string;
   workerNotes: string;
   completionImages: string[];
+  source?: 'app' | 'telegram';
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }

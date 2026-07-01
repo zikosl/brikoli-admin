@@ -2,6 +2,14 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'admin' | 'client' | 'worker';
 
+export interface TelegramAccount {
+  userId: string;
+  chatId: string;
+  username?: string;
+  fullName?: string;
+  linkedAt: Timestamp | null;
+}
+
 export interface BaseUser {
   uid: string;
   fullName: string;
@@ -23,6 +31,7 @@ export interface ClientUser extends BaseUser {
   active: boolean;
   profileImage: string;
   pushTokens: string[];
+  telegram?: TelegramAccount;
 }
 
 export interface WorkerUser extends BaseUser {
