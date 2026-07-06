@@ -1,20 +1,16 @@
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { apiFetch } from './apiClient';
 import type { Rating } from '../types/rating';
 
-const mapRatingDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Rating => {
-  const data = snapshot.data() as Omit<Rating, 'id'>;
-  return { ...data, id: snapshot.id };
-};
+interface ApiRating {
+  id: string;
+  requestId: string;
+  clientId: string;
+  workerId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 export async function getRatings() {
-  const snapshot = await getDocs(query(collection(db, 'ratings'), orderBy('createdAt', 'desc')));
-  return snapshot.docs.map(mapRatingDoc);
+  return apiFetch<ApiRating[]>('/ratings') as Promise<Rating[]>;
 }

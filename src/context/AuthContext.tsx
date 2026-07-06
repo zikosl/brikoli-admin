@@ -1,12 +1,12 @@
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { auth } from '../lib/firebase';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { getAccessToken } from '../services/apiClient';
 import { getCurrentUserProfile, loginAdmin, logout as logoutService } from '../services/authService';
 import type { AdminUser } from '../types/user';
 import { useLanguage } from './LanguageContext';
 
 interface AuthContextValue {
-  user: FirebaseUser | null;
+  user: AdminUser | null;
   profile: AdminUser | null;
   loading: boolean;
   error: string | null;
@@ -19,7 +19,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
-  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,37 +26,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!active) {
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      if (!currentUser) {
-        setUser(null);
-        setProfile(null);
+    const loadProfile = async () => {
+      if (!getAccessToken()) {
         setLoading(false);
         return;
       }
 
       try {
-        const currentProfile = await getCurrentUserProfile(currentUser.uid);
+        const currentProfile = await getCurrentUserProfile();
+
+        if (!active) {
+          return;
+        }
 
         if (!currentProfile || currentProfile.role !== 'admin') {
           await logoutService();
-          setUser(null);
           setProfile(null);
           setError(t('auth.accessDenied'));
           return;
         }
 
-        setUser(currentUser);
         setProfile(currentProfile);
       } catch (authError) {
+        if (!active) {
+          return;
+        }
         await logoutService();
-        setUser(null);
         setProfile(null);
         setError(authError instanceof Error ? authError.message : t('auth.unableVerify'));
       } finally {
@@ -65,11 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       }
-    });
+    };
+
+    void loadProfile();
 
     return () => {
       active = false;
-      unsubscribe();
     };
   }, [t]);
 
@@ -79,10 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const adminProfile = await loginAdmin(email, password);
-      setUser(auth.currentUser);
       setProfile(adminProfile);
     } catch (loginError) {
-      setUser(null);
       setProfile(null);
       setError(loginError instanceof Error ? loginError.message : t('auth.unableSignIn'));
       throw loginError;
@@ -93,13 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await logoutService();
-    setUser(null);
     setProfile(null);
   };
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      user,
+      user: profile,
       profile,
       loading,
       error,
@@ -107,10 +99,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       clearError: () => setError(null),
     }),
-    [user, profile, loading, error],
+    [profile, loading, error],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthGate({ children }: { children: ReactNode }) {
+  const { loading } = useAuth();
+  const { t } = useLanguage();
+
+  if (loading) {
+    return <LoadingSpinner fullScreen label={t('auth.checkingAccess')} />;
+  }
+
+  return children;
 }
 
 export function useAuth() {

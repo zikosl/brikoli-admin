@@ -1,83 +1,134 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { apiFetch } from './apiClient';
 import type { AppUser, ClientUser, UserUpdateInput, WorkerInvite, WorkerProfileFormValues, WorkerUser } from '../types/user';
 
-const mapUserDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): AppUser => {
-  const data = snapshot.data() as Omit<AppUser, 'uid'> & { uid?: string };
-  return { ...data, uid: data.uid ?? snapshot.id } as AppUser;
-};
+type ApiUserRole = 'ADMIN' | 'CLIENT' | 'WORKER';
 
-const mapWorkerInviteDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): WorkerInvite => {
-  const data = snapshot.data() as Omit<WorkerInvite, 'id'>;
-  return { ...data, id: snapshot.id };
-};
+interface ApiWorkerProfile {
+  services: string[];
+  available: boolean;
+  ratingAverage: number;
+  completedJobs: number;
+}
+
+interface ApiTelegramAccount {
+  telegramId: string;
+  chatId: string;
+  username?: string | null;
+  fullName?: string | null;
+  linkedAt?: string | null;
+}
+
+interface ApiUser {
+  id: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  fullName: string;
+  role: ApiUserRole;
+  active: boolean;
+  profileImage?: string | null;
+  city?: string | null;
+  address?: string | null;
+  pushTokens?: string[];
+  createdAt: string;
+  updatedAt: string;
+  workerProfile?: ApiWorkerProfile | null;
+  telegramAccount?: ApiTelegramAccount | null;
+}
+
+const roleFromApi = (role: ApiUserRole) => role.toLowerCase() as AppUser['role'];
 
 const sortByName = <T extends { fullName: string }>(users: T[]) =>
   [...users].sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-const normalizeInviteEmail = (email: string) => email.trim().toLowerCase();
+const mapUser = (user: ApiUser): AppUser => {
+  const base = {
+    uid: user.id,
+    fullName: user.fullName,
+    email: user.email ?? '',
+    role: roleFromApi(user.role),
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  if (user.role === 'WORKER') {
+    return {
+      ...base,
+      role: 'worker',
+      phoneNumber: user.phoneNumber ?? '',
+      services: user.workerProfile?.services ?? [],
+      city: user.city ?? '',
+      available: user.workerProfile?.available ?? false,
+      active: user.active,
+      ratingAverage: user.workerProfile?.ratingAverage ?? 0,
+      completedJobs: user.workerProfile?.completedJobs ?? 0,
+      profileImage: user.profileImage ?? '',
+      pushTokens: user.pushTokens ?? [],
+    } satisfies WorkerUser;
+  }
+
+  if (user.role === 'CLIENT') {
+    return {
+      ...base,
+      role: 'client',
+      phoneNumber: user.phoneNumber ?? '',
+      address: user.address ?? '',
+      city: user.city ?? '',
+      active: user.active,
+      profileImage: user.profileImage ?? '',
+      pushTokens: user.pushTokens ?? [],
+      telegram: user.telegramAccount
+        ? {
+            userId: user.telegramAccount.telegramId,
+            chatId: user.telegramAccount.chatId,
+            username: user.telegramAccount.username ?? undefined,
+            fullName: user.telegramAccount.fullName ?? undefined,
+            linkedAt: user.telegramAccount.linkedAt ?? null,
+          }
+        : undefined,
+    } satisfies ClientUser;
+  }
+
+  return { ...base, role: 'admin' };
+};
 
 export async function getUsers() {
-  const snapshot = await getDocs(collection(db, 'users'));
-  return sortByName(snapshot.docs.map(mapUserDoc));
+  const users = await apiFetch<ApiUser[]>('/users');
+  return sortByName(users.map(mapUser));
 }
 
 export async function getWorkers() {
-  const users = await getUsers();
-  return users.filter((user): user is WorkerUser => user.role === 'worker');
+  const workers = await apiFetch<ApiUser[]>('/users?role=WORKER');
+  return sortByName(workers.map(mapUser).filter((user): user is WorkerUser => user.role === 'worker'));
 }
 
-export async function getWorkerInvites() {
-  const snapshot = await getDocs(collection(db, 'workerInvites'));
-  return sortByName(snapshot.docs.map(mapWorkerInviteDoc).filter((invite) => !invite.claimed));
+export async function getWorkerInvites(): Promise<WorkerInvite[]> {
+  return [];
 }
 
 export async function getClients() {
-  const users = await getUsers();
-  return users.filter((user): user is ClientUser => user.role === 'client');
+  const clients = await apiFetch<ApiUser[]>('/users?role=CLIENT');
+  return sortByName(clients.map(mapUser).filter((user): user is ClientUser => user.role === 'client'));
 }
 
 export async function createWorkerProfile(values: WorkerProfileFormValues) {
-  const email = normalizeInviteEmail(values.email);
-  const ref = doc(db, 'workerInvites', email);
-  const existingInvite = await getDoc(ref);
-
-  await setDoc(
-    ref,
-    {
-      role: 'worker',
-      fullName: values.fullName,
-      email,
-      phoneNumber: values.phoneNumber,
-      services: values.services,
-      city: values.city,
-      available: values.available,
-      active: values.active,
-      profileImage: values.profileImage,
-      claimed: false,
-      createdAt: existingInvite.exists() ? existingInvite.get('createdAt') : serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  return email;
+  const worker = await apiFetch<ApiUser>('/users/workers', {
+    method: 'POST',
+    body: JSON.stringify({ ...values, password: values.password?.trim() || undefined }),
+  });
+  return worker.email ?? worker.id;
 }
 
 export async function updateUser(uid: string, updates: UserUpdateInput) {
-  await updateDoc(doc(db, 'users', uid), {
-    ...updates,
-    updatedAt: serverTimestamp(),
+  const hasWorkerFields =
+    updates.services !== undefined ||
+    updates.available !== undefined ||
+    updates.ratingAverage !== undefined ||
+    updates.completedJobs !== undefined ||
+    updates.password !== undefined;
+
+  await apiFetch<ApiUser>(hasWorkerFields ? `/users/workers/${uid}` : `/users/${uid}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ...updates, password: updates.password?.trim() || undefined }),
   });
 }
 

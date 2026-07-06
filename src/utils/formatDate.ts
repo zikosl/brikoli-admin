@@ -1,8 +1,7 @@
-import { Timestamp } from 'firebase/firestore';
+export type DateValue = Date | string | number | null | undefined | { toDate: () => Date };
 
-export type DateValue = Timestamp | Date | string | number | null | undefined;
-
-const isTimestamp = (value: DateValue): value is Timestamp => value instanceof Timestamp;
+const hasToDate = (value: DateValue): value is { toDate: () => Date } =>
+  Boolean(value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function');
 
 const defaultOptions: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -21,7 +20,7 @@ export function formatDate(
     return locale.startsWith('ar') ? 'غير محدد' : 'Not set';
   }
 
-  const date = isTimestamp(value) ? value.toDate() : new Date(value);
+  const date = hasToDate(value) ? value.toDate() : new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return locale.startsWith('ar') ? 'تاريخ غير صالح' : 'Invalid date';

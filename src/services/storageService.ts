@@ -1,10 +1,25 @@
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+import { apiFetch } from './apiClient';
 
-const sanitizeFileName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '-').toLowerCase();
+interface UploadResponse {
+  id: string;
+  url: string;
+}
+
+const kindByPath: Record<string, string> = {
+  services: 'SERVICE',
+  profiles: 'PROFILE',
+  requests: 'REQUEST',
+  completion: 'COMPLETION',
+};
 
 export async function uploadImage(file: File, path: string) {
-  const fileRef = ref(storage, `${path}/${Date.now()}-${sanitizeFileName(file.name)}`);
-  await uploadBytes(fileRef, file);
-  return getDownloadURL(fileRef);
+  const form = new FormData();
+  form.append('files', file);
+
+  const uploads = await apiFetch<UploadResponse[]>(`/uploads?kind=${kindByPath[path] ?? 'SERVICE'}`, {
+    method: 'POST',
+    body: form,
+  });
+
+  return uploads[0]?.url ?? '';
 }

@@ -1,13 +1,12 @@
-import type { Timestamp } from 'firebase/firestore';
-
 export type UserRole = 'admin' | 'client' | 'worker';
+export type DateValue = string | Date | number | null;
 
 export interface TelegramAccount {
   userId: string;
   chatId: string;
   username?: string;
   fullName?: string;
-  linkedAt: Timestamp | null;
+  linkedAt: DateValue;
 }
 
 export interface BaseUser {
@@ -15,8 +14,8 @@ export interface BaseUser {
   fullName: string;
   email: string;
   role: UserRole;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: DateValue;
+  updatedAt: DateValue;
 }
 
 export interface AdminUser extends BaseUser {
@@ -58,6 +57,7 @@ export interface WorkerProfileFormValues {
   available: boolean;
   active: boolean;
   profileImage: string;
+  password?: string;
 }
 
 export interface WorkerInvite {
@@ -73,8 +73,8 @@ export interface WorkerInvite {
   profileImage: string;
   claimed: boolean;
   claimedUid?: string;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: DateValue;
+  updatedAt: DateValue;
 }
 
 export interface UserUpdateInput {
@@ -90,4 +90,5 @@ export interface UserUpdateInput {
   available?: boolean;
   ratingAverage?: number;
   completedJobs?: number;
+  password?: string;
 }

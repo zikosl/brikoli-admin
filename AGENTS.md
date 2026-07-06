@@ -17,10 +17,9 @@ Use:
 - React
 - TypeScript
 - Vite
-- Firebase Web SDK
-- Firestore
-- Firebase Authentication
-- Firebase Storage
+- NestJS backend API
+- JWT authentication
+- Local backend uploads
 - React Router DOM
 - Tailwind CSS
 - Lucide React
@@ -28,40 +27,31 @@ Use:
 
 Do not use Expo in this repository.
 
-## Firebase
+## Backend API
 
 Use environment variables only.
 
 Expected env vars:
 
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
+VITE_API_URL=http://localhost:3000/api/v1
 
-Do not hardcode real Firebase credentials.
+Do not hardcode production API secrets or credentials.
 
 ## Auth
 
-Only users with role "admin" in users/{uid} can access the dashboard.
+Only backend users with role "ADMIN" can access the dashboard.
 
 There is no public signup.
 
-If a user logs in and is not admin, sign them out.
+If a user logs in and is not admin, clear the session and reject access.
 
 ## Important Rule
 
-Do not create worker Firebase Auth accounts from the frontend using createUserWithEmailAndPassword.
+Create and edit worker accounts through the backend users endpoints only.
 
-Worker auth account creation must be handled later with a Firebase Callable Cloud Function using Firebase Admin SDK.
+## API Resources
 
-For now, the dashboard can create and edit worker Firestore profiles only.
-
-## Collections
-
-Use these Firestore collections:
+Use these backend resources:
 
 - users
 - services
@@ -100,10 +90,10 @@ Fix all TypeScript/build errors before final response.
 
 - Use TypeScript strictly.
 - Avoid any.
-- Keep Firebase logic inside src/services.
+- Keep API logic inside src/services.
 - Keep pages focused on UI and page state.
 - Use reusable components.
 - Add loading states.
 - Add empty states.
 - Add error states.
-- Use serverTimestamp() for createdAt and updatedAt.
+- Let the backend own createdAt and updatedAt.

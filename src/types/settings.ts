@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { DateValue } from './user';
 
 export interface AppSettings {
   cities: string[];
@@ -6,7 +6,7 @@ export interface AppSettings {
   supportPhone: string;
   commissionPercentage: number;
   emergencyEnabled: boolean;
-  updatedAt: Timestamp | null;
+  updatedAt: DateValue;
 }
 
 export interface AppSettingsFormValues {

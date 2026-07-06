@@ -19,7 +19,13 @@ const initialFilters: RequestFiltersState = {
   urgentOnly: false,
 };
 
-const createdAtMillis = (request: ServiceRequest) => request.createdAt?.toMillis() ?? 0;
+const createdAtMillis = (request: ServiceRequest) => {
+  if (!request.createdAt) {
+    return 0;
+  }
+
+  return new Date(request.createdAt).getTime() || 0;
+};
 
 export default function Requests() {
   const { locale, t } = useLanguage();

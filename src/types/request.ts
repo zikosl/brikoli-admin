@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { DateValue } from './user';
 
 export type RequestStatus =
   | 'pending'
@@ -30,7 +30,7 @@ export interface ServiceRequest {
   address: string;
   city: string;
   urgency: RequestUrgency;
-  preferredDate?: Timestamp | null;
+  preferredDate?: DateValue;
   images: string[];
   location?: RequestLocation | null;
   status: RequestStatus;
@@ -40,8 +40,8 @@ export interface ServiceRequest {
   workerNotes: string;
   completionImages: string[];
   source?: 'app' | 'telegram';
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: DateValue;
+  updatedAt: DateValue;
 }
 
 export interface RequestFiltersState {

@@ -1,7 +1,15 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { apiFetch } from './apiClient';
 import type { AppSettings, AppSettingsFormValues } from '../types/settings';
-import { SETTINGS_DOC_ID } from '../utils/constants';
+
+interface ApiSettings {
+  cities?: string[];
+  serviceCategories?: string[];
+  categories?: string[];
+  supportPhone?: string;
+  commissionPercentage?: number;
+  emergencyEnabled?: boolean;
+  updatedAt?: string | null;
+}
 
 const defaultSettings: AppSettings = {
   cities: [],
@@ -12,23 +20,30 @@ const defaultSettings: AppSettings = {
   updatedAt: null,
 };
 
+const mapSettings = (settings: ApiSettings): AppSettings => ({
+  ...defaultSettings,
+  cities: settings.cities ?? [],
+  categories: settings.categories ?? settings.serviceCategories ?? [],
+  supportPhone: settings.supportPhone ?? '',
+  commissionPercentage: settings.commissionPercentage ?? 0,
+  emergencyEnabled: settings.emergencyEnabled ?? false,
+  updatedAt: settings.updatedAt ?? null,
+});
+
 export async function getSettings() {
-  const snapshot = await getDoc(doc(db, 'settings', SETTINGS_DOC_ID));
-
-  if (!snapshot.exists()) {
-    return defaultSettings;
-  }
-
-  return { ...defaultSettings, ...(snapshot.data() as Partial<AppSettings>) };
+  const settings = await apiFetch<ApiSettings>('/settings/platform', { auth: false });
+  return mapSettings(settings);
 }
 
 export async function updateSettings(values: AppSettingsFormValues) {
-  await setDoc(
-    doc(db, 'settings', SETTINGS_DOC_ID),
-    {
-      ...values,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await apiFetch('/settings/platform', {
+    method: 'PUT',
+    body: JSON.stringify({
+      cities: values.cities,
+      serviceCategories: values.categories,
+      supportPhone: values.supportPhone,
+      commissionPercentage: values.commissionPercentage,
+      emergencyEnabled: values.emergencyEnabled,
+    }),
+  });
 }

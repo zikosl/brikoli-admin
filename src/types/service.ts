@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { DateValue } from './user';
 
 export interface Service {
   id: string;
@@ -7,8 +7,8 @@ export interface Service {
   category: string;
   image: string;
   active: boolean;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: DateValue;
+  updatedAt: DateValue;
 }
 
 export interface ServiceFormValues {

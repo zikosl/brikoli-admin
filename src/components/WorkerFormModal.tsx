@@ -21,6 +21,7 @@ const emptyValues: WorkerProfileFormValues = {
   available: true,
   active: true,
   profileImage: '',
+  password: '',
 };
 
 export default function WorkerFormModal({ open, worker, services, onClose, onSubmit }: WorkerFormModalProps) {
@@ -45,6 +46,7 @@ export default function WorkerFormModal({ open, worker, services, onClose, onSub
             available: worker.available,
             active: worker.active,
             profileImage: worker.profileImage,
+            password: '',
           }
         : emptyValues,
     );
@@ -137,6 +139,18 @@ export default function WorkerFormModal({ open, worker, services, onClose, onSub
               value={values.profileImage}
               onChange={(event) => setValues((current) => ({ ...current, profileImage: event.target.value }))}
               placeholder="https://..."
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="label">{t('common.password')}</span>
+            <input
+              type="password"
+              className="input"
+              value={values.password ?? ''}
+              onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
+              required={!worker}
+              minLength={8}
+              placeholder={worker ? 'Leave empty to keep current password' : undefined}
             />
           </label>
           <div className="space-y-2">

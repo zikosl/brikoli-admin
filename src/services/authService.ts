@@ -1,35 +1,75 @@
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { apiFetch, clearAuthSession, getRefreshToken, setAuthSession } from './apiClient';
 import type { AdminUser, AppUser } from '../types/user';
 
-const mapUserProfile = (uid: string, data: unknown): AppUser => {
-  const profile = data as Omit<AppUser, 'uid'> & { uid?: string };
-  return { ...profile, uid: profile.uid ?? uid } as AppUser;
-};
+type ApiUserRole = 'ADMIN' | 'CLIENT' | 'WORKER';
 
-export async function getCurrentUserProfile(uid: string) {
-  const snapshot = await getDoc(doc(db, 'users', uid));
+export interface ApiUser {
+  id: string;
+  email: string | null;
+  phoneNumber: string | null;
+  fullName: string;
+  role: ApiUserRole;
+  active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
 
-  if (!snapshot.exists()) {
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: ApiUser;
+}
+
+export const roleFromApi = (role: ApiUserRole) => role.toLowerCase() as AppUser['role'];
+
+export function mapUserProfile(user: ApiUser): AppUser {
+  return {
+    uid: user.id,
+    fullName: user.fullName,
+    email: user.email ?? '',
+    role: roleFromApi(user.role),
+    createdAt: user.createdAt ?? null,
+    updatedAt: user.updatedAt ?? null,
+  } as AppUser;
+}
+
+export async function getCurrentUserProfile() {
+  const profile = await apiFetch<ApiUser | null>('/auth/me');
+
+  if (!profile) {
     return null;
   }
 
-  return mapUserProfile(uid, snapshot.data());
+  return mapUserProfile(profile);
 }
 
 export async function loginAdmin(email: string, password: string): Promise<AdminUser> {
-  const credentials = await signInWithEmailAndPassword(auth, email, password);
-  const profile = await getCurrentUserProfile(credentials.user.uid);
+  const response = await apiFetch<LoginResponse>('/auth/admin/login', {
+    auth: false,
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  setAuthSession(response);
 
-  if (!profile || profile.role !== 'admin') {
-    await signOut(auth);
+  const profile = mapUserProfile(response.user);
+  if (profile.role !== 'admin') {
+    clearAuthSession();
     throw new Error('This account is not authorized for admin dashboard access.');
   }
 
   return profile;
 }
 
-export function logout() {
-  return signOut(auth);
+export async function logout() {
+  const refreshToken = getRefreshToken();
+
+  if (refreshToken) {
+    await apiFetch('/auth/logout', {
+      auth: false,
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }).catch(() => undefined);
+  }
+
+  clearAuthSession();
 }

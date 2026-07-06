@@ -1,10 +1,10 @@
 import { Plus, Save, Trash2 } from 'lucide-react';
-import type { Timestamp } from 'firebase/firestore';
 import { useEffect, useState, type FormEvent } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
 import { getSettings, updateSettings } from '../services/settingsService';
 import type { AppSettingsFormValues } from '../types/settings';
+import type { DateValue } from '../types/user';
 import { formatDate } from '../utils/formatDate';
 
 const emptyForm: AppSettingsFormValues = {
@@ -20,7 +20,7 @@ export default function Settings() {
   const [form, setForm] = useState<AppSettingsFormValues>(emptyForm);
   const [cityInput, setCityInput] = useState('');
   const [categoryInput, setCategoryInput] = useState('');
-  const [updatedAt, setUpdatedAt] = useState<Timestamp | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<DateValue>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

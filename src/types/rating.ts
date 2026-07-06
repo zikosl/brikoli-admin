@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { DateValue } from './user';
 
 export interface Rating {
   id: string;
@@ -7,5 +7,5 @@ export interface Rating {
   workerId: string;
   rating: number;
   comment: string;
-  createdAt: Timestamp | null;
+  createdAt: DateValue;
 }
