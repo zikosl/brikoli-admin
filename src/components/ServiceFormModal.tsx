@@ -1,20 +1,24 @@
 import { Image, UploadCloud, X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import type { ServiceCategoryOption } from '../types/settings';
 import type { Service, ServiceFormValues } from '../types/service';
 
 interface ServiceFormModalProps {
   open: boolean;
   service?: Service | null;
-  categories: string[];
+  categories: ServiceCategoryOption[];
   onClose: () => void;
   onSubmit: (values: ServiceFormValues, file: File | null) => Promise<void>;
 }
 
 const emptyValues: ServiceFormValues = {
   name: '',
+  nameAr: '',
   description: '',
+  descriptionAr: '',
   category: '',
+  categoryAr: '',
   image: '',
   active: true,
 };
@@ -34,8 +38,11 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
       service
         ? {
             name: service.name,
+            nameAr: service.nameAr,
             description: service.description,
+            descriptionAr: service.descriptionAr,
             category: service.category,
+            categoryAr: service.categoryAr,
             image: service.image,
             active: service.active,
           }
@@ -55,6 +62,20 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
     }
   };
 
+  const handleCategoryChange = (categoryId: string) => {
+    const category = categories.find((item) => item.id === categoryId);
+
+    if (!category) {
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      category: category.name,
+      categoryAr: category.nameAr,
+    }));
+  };
+
   if (!open) {
     return null;
   }
@@ -71,7 +92,7 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
         <form className="space-y-5 p-4 sm:p-6" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2">
-              <span className="label">{t('common.name')}</span>
+              <span className="label">{t('services.nameEn')}</span>
               <input
                 className="input"
                 value={values.name}
@@ -80,27 +101,48 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
               />
             </label>
             <label className="space-y-2">
-              <span className="label">{t('common.category')}</span>
+              <span className="label">{t('services.nameAr')}</span>
               <input
                 className="input"
-                list="service-categories"
-                value={values.category}
-                onChange={(event) => setValues((current) => ({ ...current, category: event.target.value }))}
+                dir="rtl"
+                value={values.nameAr}
+                onChange={(event) => setValues((current) => ({ ...current, nameAr: event.target.value }))}
                 required
               />
-              <datalist id="service-categories">
-                {categories.map((category) => (
-                  <option key={category} value={category} />
-                ))}
-              </datalist>
             </label>
           </div>
           <label className="space-y-2">
-            <span className="label">{t('common.description')}</span>
+            <span className="label">{t('common.category')}</span>
+            <select
+              className="input"
+              value={categories.find((category) => category.name === values.category && (category.nameAr === values.categoryAr || !values.categoryAr))?.id ?? ''}
+              onChange={(event) => handleCategoryChange(event.target.value)}
+              required
+            >
+              <option value="">{t('services.chooseCategory')}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name} / {category.nameAr}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="label">{t('services.descriptionEn')}</span>
             <textarea
               className="input min-h-28 resize-y"
               value={values.description}
               onChange={(event) => setValues((current) => ({ ...current, description: event.target.value }))}
+              required
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="label">{t('services.descriptionAr')}</span>
+            <textarea
+              className="input min-h-28 resize-y"
+              dir="rtl"
+              value={values.descriptionAr}
+              onChange={(event) => setValues((current) => ({ ...current, descriptionAr: event.target.value }))}
               required
             />
           </label>

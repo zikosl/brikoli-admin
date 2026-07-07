@@ -4,8 +4,11 @@ import type { Service, ServiceFormValues } from '../types/service';
 interface ApiService {
   id: string;
   name: string;
+  nameAr?: string | null;
   description: string;
+  descriptionAr?: string | null;
   category: string;
+  categoryAr?: string | null;
   image?: string | null;
   active: boolean;
   createdAt: string;
@@ -15,8 +18,11 @@ interface ApiService {
 const mapService = (service: ApiService): Service => ({
   id: service.id,
   name: service.name,
+  nameAr: service.nameAr ?? '',
   description: service.description,
+  descriptionAr: service.descriptionAr ?? '',
   category: service.category,
+  categoryAr: service.categoryAr ?? '',
   image: service.image ?? '',
   active: service.active,
   createdAt: service.createdAt,

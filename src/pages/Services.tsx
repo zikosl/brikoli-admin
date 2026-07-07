@@ -13,13 +13,14 @@ import {
 } from '../services/serviceService';
 import { getSettings } from '../services/settingsService';
 import { uploadImage } from '../services/storageService';
+import type { ServiceCategoryOption } from '../types/settings';
 import type { Service, ServiceFormValues } from '../types/service';
 import { formatDate } from '../utils/formatDate';
 
 export default function Services() {
-  const { locale, t } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,20 @@ export default function Services() {
   }, []);
 
   const categoryOptions = useMemo(
-    () => [...new Set([...categories, ...services.map((service) => service.category).filter(Boolean)])].sort(),
+    () => {
+      const options = categories.filter((category) => category.active);
+      const known = new Set(options.map((category) => `${category.name}::${category.nameAr}`));
+      const missing = services
+        .filter((service) => service.category && !known.has(`${service.category}::${service.categoryAr}`))
+        .map((service) => ({
+          id: `service-${service.id}`,
+          name: service.category,
+          nameAr: service.categoryAr || service.category,
+          active: true,
+        }));
+
+      return [...options, ...missing].sort((a, b) => a.name.localeCompare(b.name));
+    },
     [categories, services],
   );
 
@@ -59,9 +73,14 @@ export default function Services() {
       return services;
     }
 
-    return services.filter((service) =>
-      [service.name, service.description, service.category].some((value) => value.toLowerCase().includes(needle)),
-    );
+    return services.filter((service) => {
+      const localizedName = language === 'ar' ? service.nameAr || service.name : service.name;
+      const localizedDescription = language === 'ar' ? service.descriptionAr || service.description : service.description;
+      const localizedCategory = language === 'ar' ? service.categoryAr || service.category : service.category;
+
+      return [localizedName, localizedDescription, localizedCategory, service.name, service.nameAr, service.category, service.categoryAr]
+        .some((value) => value.toLowerCase().includes(needle));
+    });
   }, [services, search]);
 
   const openCreate = () => {
@@ -124,13 +143,15 @@ export default function Services() {
             </div>
           )}
           <div>
-            <p className="font-medium text-gray-950">{service.name}</p>
-            <p className="line-clamp-1 max-w-xs text-xs text-gray-500">{service.description}</p>
+            <p className="font-medium text-gray-950">{language === 'ar' ? service.nameAr || service.name : service.name}</p>
+            <p className="line-clamp-1 max-w-xs text-xs text-gray-500">
+              {language === 'ar' ? service.descriptionAr || service.description : service.description}
+            </p>
           </div>
         </div>
       ),
     },
-    { header: t('common.category'), render: (service) => service.category },
+    { header: t('common.category'), render: (service) => (language === 'ar' ? service.categoryAr || service.category : service.category) },
     {
       header: t('common.status'),
       render: (service) => (
