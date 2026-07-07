@@ -20,6 +20,8 @@ export interface BaseUser {
 
 export interface AdminUser extends BaseUser {
   role: 'admin';
+  isGlobalAdmin: boolean;
+  active: boolean;
 }
 
 export interface ClientUser extends BaseUser {
@@ -91,4 +93,11 @@ export interface UserUpdateInput {
   ratingAverage?: number;
   completedJobs?: number;
   password?: string;
+}
+
+export interface AdminFormValues {
+  fullName: string;
+  email: string;
+  password: string;
+  active: boolean;
 }

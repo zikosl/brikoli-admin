@@ -4,11 +4,13 @@ import {
   ClipboardList,
   LayoutDashboard,
   Settings,
+  ShieldCheck,
   Users,
   Wrench,
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 
@@ -29,7 +31,11 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { direction, t } = useLanguage();
+  const { profile } = useAuth();
   const closedClass = direction === 'rtl' ? 'translate-x-full' : '-translate-x-full';
+  const visibleNavItems = profile?.isGlobalAdmin
+    ? [...navItems.slice(0, 5), { labelKey: 'nav.admins', to: '/admins', icon: ShieldCheck }, ...navItems.slice(5)]
+    : navItems;
 
   return (
     <>
@@ -53,7 +59,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -1,5 +1,5 @@
 import { apiFetch } from './apiClient';
-import type { AppUser, ClientUser, UserUpdateInput, WorkerInvite, WorkerProfileFormValues, WorkerUser } from '../types/user';
+import type { AdminFormValues, AdminUser, AppUser, ClientUser, UserUpdateInput, WorkerInvite, WorkerProfileFormValues, WorkerUser } from '../types/user';
 
 type ApiUserRole = 'ADMIN' | 'CLIENT' | 'WORKER';
 
@@ -24,6 +24,7 @@ interface ApiUser {
   phoneNumber?: string | null;
   fullName: string;
   role: ApiUserRole;
+  isGlobalAdmin?: boolean;
   active: boolean;
   profileImage?: string | null;
   city?: string | null;
@@ -88,7 +89,12 @@ const mapUser = (user: ApiUser): AppUser => {
     } satisfies ClientUser;
   }
 
-  return { ...base, role: 'admin' };
+  return {
+    ...base,
+    role: 'admin',
+    isGlobalAdmin: user.isGlobalAdmin ?? false,
+    active: user.active,
+  } satisfies AdminUser;
 };
 
 export async function getUsers() {
@@ -108,6 +114,20 @@ export async function getWorkerInvites(): Promise<WorkerInvite[]> {
 export async function getClients() {
   const clients = await apiFetch<ApiUser[]>('/users?role=CLIENT');
   return sortByName(clients.map(mapUser).filter((user): user is ClientUser => user.role === 'client'));
+}
+
+export async function getAdmins() {
+  const admins = await apiFetch<ApiUser[]>('/users?role=ADMIN');
+  return sortByName(admins.map(mapUser).filter((user): user is AdminUser => user.role === 'admin'));
+}
+
+export async function createAdmin(values: AdminFormValues) {
+  const admin = await apiFetch<ApiUser>('/users/admins', {
+    method: 'POST',
+    body: JSON.stringify(values),
+  });
+
+  return mapUser(admin) as AdminUser;
 }
 
 export async function createWorkerProfile(values: WorkerProfileFormValues) {

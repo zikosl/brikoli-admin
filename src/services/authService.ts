@@ -9,6 +9,7 @@ export interface ApiUser {
   phoneNumber: string | null;
   fullName: string;
   role: ApiUserRole;
+  isGlobalAdmin?: boolean;
   active: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -23,14 +24,25 @@ interface LoginResponse {
 export const roleFromApi = (role: ApiUserRole) => role.toLowerCase() as AppUser['role'];
 
 export function mapUserProfile(user: ApiUser): AppUser {
-  return {
+  const base = {
     uid: user.id,
     fullName: user.fullName,
     email: user.email ?? '',
     role: roleFromApi(user.role),
     createdAt: user.createdAt ?? null,
     updatedAt: user.updatedAt ?? null,
-  } as AppUser;
+  };
+
+  if (user.role === 'ADMIN') {
+    return {
+      ...base,
+      role: 'admin',
+      isGlobalAdmin: user.isGlobalAdmin ?? false,
+      active: user.active,
+    };
+  }
+
+  return base as AppUser;
 }
 
 export async function getCurrentUserProfile() {

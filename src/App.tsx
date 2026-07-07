@@ -3,6 +3,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import AdminLayout from './layouts/AdminLayout';
+import Admins from './pages/Admins';
 import Clients from './pages/Clients';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="/services" element={<Services />} />
               <Route path="/workers" element={<Workers />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/admins" element={<Admins />} />
               <Route path="/requests" element={<Requests />} />
               <Route path="/requests/:id" element={<RequestDetails />} />
               <Route path="/reports" element={<Reports />} />
