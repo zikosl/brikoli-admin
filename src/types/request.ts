@@ -17,6 +17,25 @@ export interface RequestLocation {
   longitude: number;
 }
 
+export interface RequestAssignmentUser {
+  id: string;
+  fullName: string;
+  phoneNumber?: string | null;
+  email?: string | null;
+}
+
+export interface RequestAssignment {
+  id: string;
+  requestId: string;
+  workerId: string;
+  previousWorkerId: string | null;
+  note: string;
+  createdAt: DateValue;
+  worker?: RequestAssignmentUser | null;
+  previousWorker?: RequestAssignmentUser | null;
+  assignedBy?: RequestAssignmentUser | null;
+}
+
 export interface ServiceRequest {
   id: string;
   clientId: string;
@@ -39,6 +58,7 @@ export interface ServiceRequest {
   adminNotes: string;
   workerNotes: string;
   completionImages: string[];
+  assignmentHistory: RequestAssignment[];
   source?: 'app' | 'telegram';
   createdAt: DateValue;
   updatedAt: DateValue;

@@ -19,6 +19,25 @@ interface ApiUpload {
   url: string;
 }
 
+interface ApiAssignmentUser {
+  id: string;
+  fullName: string;
+  phoneNumber?: string | null;
+  email?: string | null;
+}
+
+interface ApiRequestAssignment {
+  id: string;
+  requestId: string;
+  workerId: string;
+  previousWorkerId: string | null;
+  note: string;
+  createdAt: string;
+  worker?: ApiAssignmentUser | null;
+  previousWorker?: ApiAssignmentUser | null;
+  assignedBy?: ApiAssignmentUser | null;
+}
+
 interface ApiServiceRequest {
   id: string;
   clientId: string;
@@ -42,6 +61,7 @@ interface ApiServiceRequest {
   adminNotes: string;
   workerNotes: string;
   completionImages?: ApiUpload[];
+  assignmentHistory?: ApiRequestAssignment[];
   source?: 'APP' | 'TELEGRAM';
   createdAt: string;
   updatedAt: string;
@@ -76,6 +96,7 @@ const mapRequest = (request: ApiServiceRequest): ServiceRequest => ({
   adminNotes: request.adminNotes,
   workerNotes: request.workerNotes,
   completionImages: request.completionImages?.map((image) => image.url) ?? [],
+  assignmentHistory: request.assignmentHistory ?? [],
   source: request.source?.toLowerCase() as ServiceRequest['source'],
   createdAt: request.createdAt,
   updatedAt: request.updatedAt,
@@ -101,10 +122,10 @@ export async function updateRequest(requestId: string, updates: RequestUpdateInp
   });
 }
 
-export async function assignWorkerToRequest(requestId: string, worker: Pick<WorkerUser, 'uid' | 'fullName'>) {
+export async function assignWorkerToRequest(requestId: string, worker: Pick<WorkerUser, 'uid' | 'fullName'>, note?: string) {
   await apiFetch<ApiServiceRequest>(`/admin/requests/${requestId}/assign-worker`, {
     method: 'POST',
-    body: JSON.stringify({ workerId: worker.uid }),
+    body: JSON.stringify({ workerId: worker.uid, note: note?.trim() || undefined }),
   });
 }
 
