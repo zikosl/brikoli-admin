@@ -1,9 +1,9 @@
-import { Plus, Search, ShieldCheck } from 'lucide-react';
+import { Pencil, Plus, Search, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import DataTable, { type TableColumn } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { createAdmin, getAdmins } from '../services/userService';
+import { createAdmin, getAdmins, updateAdmin } from '../services/userService';
 import type { AdminFormValues, AdminUser } from '../types/user';
 import { formatDate } from '../utils/formatDate';
 
@@ -20,6 +20,7 @@ export default function Admins() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<AdminFormValues>(initialForm);
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,19 +62,48 @@ export default function Admins() {
     setError(null);
 
     try {
-      await createAdmin({
+      const values = {
         ...form,
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         password: form.password.trim(),
-      });
+      };
+
+      if (editingAdmin) {
+        await updateAdmin(editingAdmin.uid, {
+          fullName: values.fullName,
+          email: values.email,
+          active: editingAdmin.isGlobalAdmin ? true : values.active,
+          password: values.password || undefined,
+        });
+      } else {
+        await createAdmin(values);
+      }
       setForm(initialForm);
+      setEditingAdmin(null);
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t('admins.saveError'));
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (admin: AdminUser) => {
+    setEditingAdmin(admin);
+    setForm({
+      fullName: admin.fullName,
+      email: admin.email,
+      password: '',
+      active: admin.active,
+    });
+    setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingAdmin(null);
+    setForm(initialForm);
+    setError(null);
   };
 
   const columns: Array<TableColumn<AdminUser>> = [
@@ -118,6 +148,15 @@ export default function Admins() {
       ),
     },
     { header: t('common.created'), render: (admin) => formatDate(admin.createdAt, undefined, locale) },
+    {
+      header: '',
+      render: (admin) => (
+        <button type="button" className="btn-secondary h-9 px-3" onClick={() => startEdit(admin)}>
+          <Pencil className="h-4 w-4" aria-hidden="true" />
+          {t('common.edit')}
+        </button>
+      ),
+    },
   ];
 
   if (!canManageAdmins) {
@@ -139,6 +178,17 @@ export default function Admins() {
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
 
       <form onSubmit={(event) => void handleSubmit(event)} className="panel grid gap-4 p-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+        {editingAdmin ? (
+          <div className="lg:col-span-4 flex items-center justify-between gap-3 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800 ring-1 ring-brand-100">
+            <span>
+              {t('admins.editing')} <strong>{editingAdmin.fullName}</strong>
+            </span>
+            <button type="button" className="inline-flex items-center gap-2 font-semibold text-brand-700" onClick={cancelEdit}>
+              <X className="h-4 w-4" aria-hidden="true" />
+              {t('common.cancel')}
+            </button>
+          </div>
+        ) : null}
         <label>
           <span className="label">{t('common.name')}</span>
           <input
@@ -159,20 +209,32 @@ export default function Admins() {
           />
         </label>
         <label>
-          <span className="label">{t('common.password')}</span>
+          <span className="label">{editingAdmin ? t('admins.newPasswordOptional') : t('common.password')}</span>
           <input
             className="input"
             type="password"
             minLength={12}
             value={form.password}
             onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-            required
+            required={!editingAdmin}
           />
         </label>
-        <button type="submit" className="btn-primary h-10" disabled={saving}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          {saving ? t('common.saving') : t('admins.create')}
-        </button>
+        <div className="flex flex-col gap-3">
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              checked={editingAdmin?.isGlobalAdmin ? true : form.active}
+              disabled={editingAdmin?.isGlobalAdmin}
+              onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
+            />
+            {t('common.active')}
+          </label>
+          <button type="submit" className="btn-primary h-10" disabled={saving}>
+            {editingAdmin ? <Pencil className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+            {saving ? t('common.saving') : editingAdmin ? t('admins.update') : t('admins.create')}
+          </button>
+        </div>
       </form>
 
       <label className="relative block w-full max-w-xl">

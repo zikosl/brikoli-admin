@@ -101,3 +101,7 @@ export interface AdminFormValues {
   password: string;
   active: boolean;
 }
+
+export type AdminUpdateInput = Partial<Omit<AdminFormValues, 'password'>> & {
+  password?: string;
+};

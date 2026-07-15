@@ -1,5 +1,5 @@
 import { apiFetch } from './apiClient';
-import type { AdminFormValues, AdminUser, AppUser, ClientUser, UserUpdateInput, WorkerInvite, WorkerProfileFormValues, WorkerUser } from '../types/user';
+import type { AdminFormValues, AdminUpdateInput, AdminUser, AppUser, ClientUser, UserUpdateInput, WorkerInvite, WorkerProfileFormValues, WorkerUser } from '../types/user';
 
 type ApiUserRole = 'ADMIN' | 'CLIENT' | 'WORKER';
 
@@ -125,6 +125,15 @@ export async function createAdmin(values: AdminFormValues) {
   const admin = await apiFetch<ApiUser>('/users/admins', {
     method: 'POST',
     body: JSON.stringify(values),
+  });
+
+  return mapUser(admin) as AdminUser;
+}
+
+export async function updateAdmin(uid: string, values: AdminUpdateInput) {
+  const admin = await apiFetch<ApiUser>(`/users/admins/${uid}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ...values, password: values.password?.trim() || undefined }),
   });
 
   return mapUser(admin) as AdminUser;
