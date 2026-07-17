@@ -6,6 +6,7 @@ import RequestFilters from '../components/RequestFilters';
 import StatusBadge from '../components/StatusBadge';
 import { useLanguage } from '../context/LanguageContext';
 import { getRequests } from '../services/requestService';
+import { subscribeToRealtime } from '../services/realtimeService';
 import { getServices } from '../services/serviceService';
 import type { RequestFiltersState, ServiceRequest } from '../types/request';
 import type { Service } from '../types/service';
@@ -18,6 +19,8 @@ const initialFilters: RequestFiltersState = {
   serviceId: '',
   urgentOnly: false,
 };
+
+const REQUEST_REFRESH_INTERVAL_MS = 7000;
 
 const createdAtMillis = (request: ServiceRequest) => {
   if (!request.createdAt) {
@@ -36,23 +39,45 @@ export default function Requests() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    let active = true;
+
+    const load = async (showLoading = false) => {
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
         const [requestsData, servicesData] = await Promise.all([getRequests(), getServices()]);
-        setRequests(requestsData);
-        setServices(servicesData);
+        if (active) {
+          setRequests(requestsData);
+          setServices(servicesData);
+        }
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : t('requests.loadError'));
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : t('requests.loadError'));
+        }
       } finally {
-        setLoading(false);
+        if (active && showLoading) {
+          setLoading(false);
+        }
       }
     };
 
-    void load();
-  }, []);
+    void load(true);
+    const unsubscribeRealtime = subscribeToRealtime('request.changed', () => {
+      void load();
+    });
+    const timer = window.setInterval(() => {
+      void load();
+    }, REQUEST_REFRESH_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      unsubscribeRealtime();
+      window.clearInterval(timer);
+    };
+  }, [t]);
 
   const cities = useMemo(
     () => [...new Set(requests.map((request) => request.city).filter(Boolean))].sort(),

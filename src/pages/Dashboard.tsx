@@ -18,6 +18,7 @@ import StatusBadge from '../components/StatusBadge';
 import { useLanguage } from '../context/LanguageContext';
 import { getRatings } from '../services/ratingService';
 import { getRequests } from '../services/requestService';
+import { subscribeToRealtime } from '../services/realtimeService';
 import { getServices } from '../services/serviceService';
 import { getUsers } from '../services/userService';
 import type { Rating } from '../types/rating';
@@ -29,6 +30,7 @@ import { formatDate } from '../utils/formatDate';
 
 const isClient = (user: AppUser): user is ClientUser => user.role === 'client';
 const isWorker = (user: AppUser): user is WorkerUser => user.role === 'worker';
+const DASHBOARD_REFRESH_INTERVAL_MS = 10000;
 
 export default function Dashboard() {
   const { locale, t } = useLanguage();
@@ -40,8 +42,12 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    let active = true;
+
+    const load = async (showLoading = false) => {
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
@@ -51,19 +57,37 @@ export default function Dashboard() {
           getRequests(),
           getRatings(),
         ]);
-        setUsers(usersData);
-        setServices(servicesData);
-        setRequests(requestsData);
-        setRatings(ratingsData);
+        if (active) {
+          setUsers(usersData);
+          setServices(servicesData);
+          setRequests(requestsData);
+          setRatings(ratingsData);
+        }
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : t('dashboard.loadError'));
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : t('dashboard.loadError'));
+        }
       } finally {
-        setLoading(false);
+        if (active && showLoading) {
+          setLoading(false);
+        }
       }
     };
 
-    void load();
-  }, []);
+    void load(true);
+    const unsubscribeRealtime = subscribeToRealtime('request.changed', () => {
+      void load();
+    });
+    const timer = window.setInterval(() => {
+      void load();
+    }, DASHBOARD_REFRESH_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      unsubscribeRealtime();
+      window.clearInterval(timer);
+    };
+  }, [t]);
 
   const clients = useMemo(() => users.filter(isClient), [users]);
   const workers = useMemo(() => users.filter(isWorker), [users]);
