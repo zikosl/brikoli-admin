@@ -1,4 +1,4 @@
-import { Edit, Plus, Trash2 } from 'lucide-react';
+import { Edit, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DataTable, { type TableColumn } from '../components/DataTable';
@@ -12,6 +12,7 @@ import {
   updateCategory,
   updateSubCategory,
 } from '../services/categoryService';
+import { uploadImage } from '../services/storageService';
 import type { Category, CategoryFormValues, SubCategory, SubCategoryFormValues } from '../types/category';
 
 const emptyCategory: CategoryFormValues = { title: '', titleAr: '', image: '', active: true };
@@ -22,6 +23,8 @@ export default function Categories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryValues, setCategoryValues] = useState<CategoryFormValues>(emptyCategory);
   const [subCategoryValues, setSubCategoryValues] = useState<SubCategoryFormValues>(emptySubCategory);
+  const [categoryFile, setCategoryFile] = useState<File | null>(null);
+  const [subCategoryFile, setSubCategoryFile] = useState<File | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingSubCategory, setEditingSubCategory] = useState<SubCategory | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
@@ -57,13 +60,17 @@ export default function Categories() {
     event.preventDefault();
     setSaving(true);
     try {
+      const image = categoryFile ? await uploadImage(categoryFile, 'categories') : categoryValues.image;
+      const payload = { ...categoryValues, image };
+
       if (editingCategory) {
-        await updateCategory(editingCategory.id, categoryValues);
+        await updateCategory(editingCategory.id, payload);
       } else {
-        await createCategory(categoryValues);
+        await createCategory(payload);
       }
       setEditingCategory(null);
       setCategoryValues(emptyCategory);
+      setCategoryFile(null);
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t('categories.saveError'));
@@ -76,13 +83,17 @@ export default function Categories() {
     event.preventDefault();
     setSaving(true);
     try {
+      const image = subCategoryFile ? await uploadImage(subCategoryFile, 'categories') : subCategoryValues.image;
+      const payload = { ...subCategoryValues, image };
+
       if (editingSubCategory) {
-        await updateSubCategory(editingSubCategory.id, subCategoryValues);
+        await updateSubCategory(editingSubCategory.id, payload);
       } else {
-        await createSubCategory(subCategoryValues);
+        await createSubCategory(payload);
       }
       setEditingSubCategory(null);
       setSubCategoryValues({ ...emptySubCategory, categoryId: subCategoryValues.categoryId });
+      setSubCategoryFile(null);
       await load();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t('categories.saveError'));
@@ -113,6 +124,7 @@ export default function Categories() {
           onEdit={() => {
             setEditingCategory(category);
             setCategoryValues({ title: category.title, titleAr: category.titleAr, image: category.image, active: category.active });
+            setCategoryFile(null);
           }}
           onDelete={() => setCategoryToDelete(category)}
         />
@@ -141,6 +153,7 @@ export default function Categories() {
         <ActionButtons
           onEdit={() => {
             setEditingSubCategory(subCategory);
+            setSubCategoryFile(null);
             setSubCategoryValues({
               categoryId: subCategory.categoryId,
               title: subCategory.title,
@@ -168,24 +181,30 @@ export default function Categories() {
         <CategoryForm
           title={editingCategory ? t('categories.editCategory') : t('categories.newCategory')}
           values={categoryValues}
+          file={categoryFile}
           saving={saving}
           onChange={setCategoryValues}
+          onFileChange={setCategoryFile}
           onSubmit={submitCategory}
           onCancel={() => {
             setEditingCategory(null);
             setCategoryValues(emptyCategory);
+            setCategoryFile(null);
           }}
         />
         <SubCategoryForm
           title={editingSubCategory ? t('categories.editSubCategory') : t('categories.newSubCategory')}
           categories={categories}
           values={subCategoryValues}
+          file={subCategoryFile}
           saving={saving}
           onChange={setSubCategoryValues}
+          onFileChange={setSubCategoryFile}
           onSubmit={submitSubCategory}
           onCancel={() => {
             setEditingSubCategory(null);
             setSubCategoryValues({ ...emptySubCategory, categoryId: categories[0]?.id || '' });
+            setSubCategoryFile(null);
           }}
         />
       </div>
@@ -228,15 +247,19 @@ export default function Categories() {
 function CategoryForm({
   title,
   values,
+  file,
   saving,
   onChange,
+  onFileChange,
   onSubmit,
   onCancel,
 }: {
   title: string;
   values: CategoryFormValues;
+  file: File | null;
   saving: boolean;
   onChange: (values: CategoryFormValues) => void;
+  onFileChange: (file: File | null) => void;
   onSubmit: (event: FormEvent) => void;
   onCancel: () => void;
 }) {
@@ -244,7 +267,7 @@ function CategoryForm({
   return (
     <form className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm" onSubmit={onSubmit}>
       <h2 className="mb-4 text-lg font-semibold text-gray-950">{title}</h2>
-      <CategoryFields values={values} onChange={onChange} />
+      <CategoryFields values={values} file={file} onChange={onChange} onFileChange={onFileChange} />
       <FormActions saving={saving} onCancel={onCancel} submitLabel={t('common.save')} />
     </form>
   );
@@ -254,16 +277,20 @@ function SubCategoryForm({
   title,
   categories,
   values,
+  file,
   saving,
   onChange,
+  onFileChange,
   onSubmit,
   onCancel,
 }: {
   title: string;
   categories: Category[];
   values: SubCategoryFormValues;
+  file: File | null;
   saving: boolean;
   onChange: (values: SubCategoryFormValues) => void;
+  onFileChange: (file: File | null) => void;
   onSubmit: (event: FormEvent) => void;
   onCancel: () => void;
 }) {
@@ -280,13 +307,23 @@ function SubCategoryForm({
           ))}
         </select>
       </label>
-      <CategoryFields values={values} onChange={onChange} />
+      <CategoryFields values={values} file={file} onChange={onChange} onFileChange={onFileChange} />
       <FormActions saving={saving} onCancel={onCancel} submitLabel={t('common.save')} />
     </form>
   );
 }
 
-function CategoryFields<T extends CategoryFormValues>({ values, onChange }: { values: T; onChange: (values: T) => void }) {
+function CategoryFields<T extends CategoryFormValues>({
+  values,
+  file,
+  onChange,
+  onFileChange,
+}: {
+  values: T;
+  file: File | null;
+  onChange: (values: T) => void;
+  onFileChange: (file: File | null) => void;
+}) {
   const { t } = useLanguage();
   return (
     <div className="space-y-3">
@@ -298,10 +335,19 @@ function CategoryFields<T extends CategoryFormValues>({ values, onChange }: { va
         <span className="label">{t('categories.titleAr')}</span>
         <input className="input" dir="rtl" value={values.titleAr} onChange={(event) => onChange({ ...values, titleAr: event.target.value })} required />
       </label>
-      <label className="block space-y-2">
-        <span className="label">{t('common.imageUrl')}</span>
-        <input className="input" value={values.image} onChange={(event) => onChange({ ...values, image: event.target.value })} placeholder="https://..." />
-      </label>
+      <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+        {values.image ? <img src={values.image} alt="" className="h-12 w-12 rounded-md object-cover" /> : <ImagePlaceholder />}
+        <label className="btn-secondary cursor-pointer whitespace-nowrap">
+          <UploadCloud className="h-4 w-4" aria-hidden="true" />
+          {file ? t('common.selected') : t('common.chooseImage')}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+          />
+        </label>
+      </div>
       <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
         <input
           type="checkbox"

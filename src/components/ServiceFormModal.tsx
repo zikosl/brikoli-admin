@@ -1,4 +1,4 @@
-import { Image, UploadCloud, X } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import type { Category } from '../types/category';
@@ -183,31 +183,21 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
               required
             />
           </label>
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-            <label className="space-y-2">
-              <span className="label">{t('common.imageUrl')}</span>
-              <div className="relative">
-                <Image className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
-                <input
-                  className="input ps-9"
-                  value={values.image}
-                  onChange={(event) => setValues((current) => ({ ...current, image: event.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
-            </label>
-            <label className="space-y-2">
-              <span className="label">{t('common.upload')}</span>
-              <span className="btn-secondary cursor-pointer whitespace-nowrap">
-                <UploadCloud className="h-4 w-4" aria-hidden="true" />
-                {file ? t('common.selected') : t('common.chooseImage')}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                />
-              </span>
+          <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+            {values.image ? (
+              <img src={values.image} alt="" className="h-14 w-14 rounded-md object-cover" />
+            ) : (
+              <div className="grid h-14 w-14 place-items-center rounded-md bg-gray-100 text-xs text-gray-400">IMG</div>
+            )}
+            <label className="btn-secondary cursor-pointer whitespace-nowrap">
+              <UploadCloud className="h-4 w-4" aria-hidden="true" />
+              {file ? t('common.selected') : t('common.chooseImage')}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
             </label>
           </div>
           <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
