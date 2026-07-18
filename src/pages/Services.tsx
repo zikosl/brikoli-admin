@@ -11,16 +11,16 @@ import {
   toggleServiceActive,
   updateService,
 } from '../services/serviceService';
-import { getSettings } from '../services/settingsService';
+import { getCategories } from '../services/categoryService';
 import { uploadImage } from '../services/storageService';
-import type { ServiceCategoryOption } from '../types/settings';
+import type { Category } from '../types/category';
 import type { Service, ServiceFormValues } from '../types/service';
 import { formatDate } from '../utils/formatDate';
 
 export default function Services() {
   const { language, locale, t } = useLanguage();
   const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<ServiceCategoryOption[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +34,9 @@ export default function Services() {
     setError(null);
 
     try {
-      const [servicesData, settingsData] = await Promise.all([getServices(), getSettings()]);
+      const [servicesData, categoriesData] = await Promise.all([getServices(), getCategories(true)]);
       setServices(servicesData);
-      setCategories(settingsData.categories);
+      setCategories(categoriesData);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t('services.loadError'));
     } finally {
@@ -48,24 +48,6 @@ export default function Services() {
     void load();
   }, []);
 
-  const categoryOptions = useMemo(
-    () => {
-      const options = categories.filter((category) => category.active);
-      const known = new Set(options.map((category) => `${category.name}::${category.nameAr}`));
-      const missing = services
-        .filter((service) => service.category && !known.has(`${service.category}::${service.categoryAr}`))
-        .map((service) => ({
-          id: `service-${service.id}`,
-          name: service.category,
-          nameAr: service.categoryAr || service.category,
-          active: true,
-        }));
-
-      return [...options, ...missing].sort((a, b) => a.name.localeCompare(b.name));
-    },
-    [categories, services],
-  );
-
   const filteredServices = useMemo(() => {
     const needle = search.trim().toLowerCase();
 
@@ -76,9 +58,10 @@ export default function Services() {
     return services.filter((service) => {
       const localizedName = language === 'ar' ? service.nameAr || service.name : service.name;
       const localizedDescription = language === 'ar' ? service.descriptionAr || service.description : service.description;
-      const localizedCategory = language === 'ar' ? service.categoryAr || service.category : service.category;
+      const localizedCategory = language === 'ar' ? service.categoryTitleAr || service.categoryTitle : service.categoryTitle;
+      const localizedSubCategory = language === 'ar' ? service.subCategoryTitleAr || service.subCategoryTitle : service.subCategoryTitle;
 
-      return [localizedName, localizedDescription, localizedCategory, service.name, service.nameAr, service.category, service.categoryAr]
+      return [localizedName, localizedDescription, localizedCategory, localizedSubCategory, service.name, service.nameAr, service.category, service.categoryAr]
         .some((value) => value.toLowerCase().includes(needle));
     });
   }, [services, search]);
@@ -151,7 +134,15 @@ export default function Services() {
         </div>
       ),
     },
-    { header: t('common.category'), render: (service) => (language === 'ar' ? service.categoryAr || service.category : service.category) },
+    {
+      header: t('common.category'),
+      render: (service) => (
+        <div>
+          <p>{language === 'ar' ? service.categoryTitleAr || service.categoryTitle : service.categoryTitle}</p>
+          <p className="text-xs text-gray-500">{language === 'ar' ? service.subCategoryTitleAr || service.subCategoryTitle : service.subCategoryTitle}</p>
+        </div>
+      ),
+    },
     {
       header: t('common.status'),
       render: (service) => (
@@ -230,7 +221,7 @@ export default function Services() {
       <ServiceFormModal
         open={modalOpen}
         service={selectedService}
-        categories={categoryOptions}
+        categories={categories}
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
       />

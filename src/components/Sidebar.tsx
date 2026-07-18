@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Settings,
   ShieldCheck,
+  Tags,
   Users,
   Wrench,
   X,
@@ -17,6 +18,7 @@ import type { TranslationKey } from '../i18n/translations';
 const navItems = [
   { labelKey: 'nav.dashboard', to: '/', icon: LayoutDashboard },
   { labelKey: 'nav.requests', to: '/requests', icon: ClipboardList },
+  { labelKey: 'nav.categories', to: '/categories', icon: Tags },
   { labelKey: 'nav.services', to: '/services', icon: Wrench },
   { labelKey: 'nav.workers', to: '/workers', icon: BriefcaseBusiness },
   { labelKey: 'nav.clients', to: '/clients', icon: Users },

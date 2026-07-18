@@ -1,13 +1,13 @@
 import { Image, UploadCloud, X } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import type { ServiceCategoryOption } from '../types/settings';
+import type { Category } from '../types/category';
 import type { Service, ServiceFormValues } from '../types/service';
 
 interface ServiceFormModalProps {
   open: boolean;
   service?: Service | null;
-  categories: ServiceCategoryOption[];
+  categories: Category[];
   onClose: () => void;
   onSubmit: (values: ServiceFormValues, file: File | null) => Promise<void>;
 }
@@ -17,6 +17,8 @@ const emptyValues: ServiceFormValues = {
   nameAr: '',
   description: '',
   descriptionAr: '',
+  categoryId: '',
+  subCategoryId: '',
   category: '',
   categoryAr: '',
   image: '',
@@ -41,6 +43,8 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
             nameAr: service.nameAr,
             description: service.description,
             descriptionAr: service.descriptionAr,
+            categoryId: service.categoryId,
+            subCategoryId: service.subCategoryId,
             category: service.category,
             categoryAr: service.categoryAr,
             image: service.image,
@@ -62,17 +66,33 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
     }
   };
 
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === values.categoryId) ?? null,
+    [categories, values.categoryId],
+  );
+  const subCategories = selectedCategory?.subCategories.filter((subCategory) => subCategory.active) ?? [];
+
   const handleCategoryChange = (categoryId: string) => {
     const category = categories.find((item) => item.id === categoryId);
 
     if (!category) {
+      setValues((current) => ({ ...current, categoryId: '', subCategoryId: '', category: '', categoryAr: '' }));
       return;
     }
 
     setValues((current) => ({
       ...current,
-      category: category.name,
-      categoryAr: category.nameAr,
+      categoryId: category.id,
+      subCategoryId: '',
+      category: category.title,
+      categoryAr: category.titleAr,
+    }));
+  };
+
+  const handleSubCategoryChange = (subCategoryId: string) => {
+    setValues((current) => ({
+      ...current,
+      subCategoryId,
     }));
   };
 
@@ -115,14 +135,31 @@ export default function ServiceFormModal({ open, service, categories, onClose, o
             <span className="label">{t('common.category')}</span>
             <select
               className="input"
-              value={categories.find((category) => category.name === values.category && (category.nameAr === values.categoryAr || !values.categoryAr))?.id ?? ''}
+              value={values.categoryId}
               onChange={(event) => handleCategoryChange(event.target.value)}
               required
             >
               <option value="">{t('services.chooseCategory')}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.name} / {category.nameAr}
+                  {category.title} / {category.titleAr}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="label">{t('services.chooseSubCategory')}</span>
+            <select
+              className="input"
+              value={values.subCategoryId}
+              onChange={(event) => handleSubCategoryChange(event.target.value)}
+              disabled={!selectedCategory}
+              required
+            >
+              <option value="">{t('services.chooseSubCategory')}</option>
+              {subCategories.map((subCategory) => (
+                <option key={subCategory.id} value={subCategory.id}>
+                  {subCategory.title} / {subCategory.titleAr}
                 </option>
               ))}
             </select>

@@ -7,8 +7,20 @@ interface ApiService {
   nameAr?: string | null;
   description: string;
   descriptionAr?: string | null;
+  categoryId?: string | null;
+  subCategoryId?: string | null;
   category: string;
   categoryAr?: string | null;
+  categoryRef?: {
+    id: string;
+    title: string;
+    titleAr?: string | null;
+  } | null;
+  subCategory?: {
+    id: string;
+    title: string;
+    titleAr?: string | null;
+  } | null;
   image?: string | null;
   active: boolean;
   createdAt: string;
@@ -21,8 +33,14 @@ const mapService = (service: ApiService): Service => ({
   nameAr: service.nameAr ?? '',
   description: service.description,
   descriptionAr: service.descriptionAr ?? '',
+  categoryId: service.categoryId ?? service.categoryRef?.id ?? '',
+  subCategoryId: service.subCategoryId ?? service.subCategory?.id ?? '',
   category: service.category,
   categoryAr: service.categoryAr ?? '',
+  categoryTitle: service.categoryRef?.title ?? service.category,
+  categoryTitleAr: service.categoryRef?.titleAr ?? service.categoryAr ?? '',
+  subCategoryTitle: service.subCategory?.title ?? '',
+  subCategoryTitleAr: service.subCategory?.titleAr ?? '',
   image: service.image ?? '',
   active: service.active,
   createdAt: service.createdAt,

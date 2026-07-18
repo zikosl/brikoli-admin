@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import AdminLayout from './layouts/AdminLayout';
 import Admins from './pages/Admins';
+import Categories from './pages/Categories';
 import Clients from './pages/Clients';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -55,6 +56,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="/categories" element={<Categories />} />
               <Route path="/services" element={<Services />} />
               <Route path="/workers" element={<Workers />} />
               <Route path="/clients" element={<Clients />} />
