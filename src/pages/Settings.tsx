@@ -3,13 +3,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
 import { getSettings, updateSettings } from '../services/settingsService';
-import type { AppSettingsFormValues, ServiceCategoryOption } from '../types/settings';
+import type { AppSettingsFormValues } from '../types/settings';
 import type { DateValue } from '../types/user';
 import { formatDate } from '../utils/formatDate';
 
 const emptyForm: AppSettingsFormValues = {
   cities: [],
-  categories: [],
   supportPhone: '',
   commissionPercentage: 0,
   emergencyEnabled: false,
@@ -19,8 +18,6 @@ export default function Settings() {
   const { locale, t } = useLanguage();
   const [form, setForm] = useState<AppSettingsFormValues>(emptyForm);
   const [cityInput, setCityInput] = useState('');
-  const [categoryNameInput, setCategoryNameInput] = useState('');
-  const [categoryNameArInput, setCategoryNameArInput] = useState('');
   const [updatedAt, setUpdatedAt] = useState<DateValue>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,7 +33,6 @@ export default function Settings() {
         const settings = await getSettings();
         setForm({
           cities: settings.cities,
-          categories: settings.categories,
           supportPhone: settings.supportPhone,
           commissionPercentage: settings.commissionPercentage,
           emergencyEnabled: settings.emergencyEnabled,
@@ -51,14 +47,6 @@ export default function Settings() {
 
     void load();
   }, []);
-
-  const slugify = (value: string) =>
-    value
-      .trim()
-      .toLowerCase()
-      .normalize('NFKD')
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/^-+|-+$/g, '') || 'category';
 
   const addCity = (value: string) => {
     const normalized = value.trim();
@@ -79,48 +67,6 @@ export default function Settings() {
     setForm((current) => ({
       ...current,
       cities: current.cities.filter((item) => item !== value),
-    }));
-  };
-
-  const addCategory = () => {
-    const name = categoryNameInput.trim();
-    const nameAr = categoryNameArInput.trim();
-
-    if (!name || !nameAr) {
-      return;
-    }
-
-    const baseId = slugify(name);
-    setForm((current) => {
-      const existingIds = new Set(current.categories.map((category) => category.id));
-      let id = baseId;
-      let index = 2;
-
-      while (existingIds.has(id)) {
-        id = `${baseId}-${index}`;
-        index += 1;
-      }
-
-      return {
-        ...current,
-        categories: [...current.categories, { id, name, nameAr, active: true }].sort((a, b) => a.name.localeCompare(b.name)),
-      };
-    });
-    setCategoryNameInput('');
-    setCategoryNameArInput('');
-  };
-
-  const updateCategory = (id: string, updates: Partial<ServiceCategoryOption>) => {
-    setForm((current) => ({
-      ...current,
-      categories: current.categories.map((category) => category.id === id ? { ...category, ...updates } : category),
-    }));
-  };
-
-  const removeCategory = (id: string) => {
-    setForm((current) => ({
-      ...current,
-      categories: current.categories.filter((category) => category.id !== id),
     }));
   };
 
@@ -204,16 +150,6 @@ export default function Settings() {
             onAdd={() => addCity(cityInput)}
             onRemove={removeCity}
           />
-          <CategorySettingsList
-            categories={form.categories}
-            nameValue={categoryNameInput}
-            nameArValue={categoryNameArInput}
-            onNameChange={setCategoryNameInput}
-            onNameArChange={setCategoryNameArInput}
-            onAdd={addCategory}
-            onUpdate={updateCategory}
-            onRemove={removeCategory}
-          />
         </div>
 
         <div className="flex justify-end">
@@ -224,90 +160,6 @@ export default function Settings() {
         </div>
       </form>
     </div>
-  );
-}
-
-interface CategorySettingsListProps {
-  categories: ServiceCategoryOption[];
-  nameValue: string;
-  nameArValue: string;
-  onNameChange: (value: string) => void;
-  onNameArChange: (value: string) => void;
-  onAdd: () => void;
-  onUpdate: (id: string, updates: Partial<ServiceCategoryOption>) => void;
-  onRemove: (id: string) => void;
-}
-
-function CategorySettingsList({
-  categories,
-  nameValue,
-  nameArValue,
-  onNameChange,
-  onNameArChange,
-  onAdd,
-  onUpdate,
-  onRemove,
-}: CategorySettingsListProps) {
-  const { t } = useLanguage();
-
-  return (
-    <section className="panel p-5">
-      <h2 className="mb-4 text-lg font-semibold text-gray-950">{t('settings.serviceCategories')}</h2>
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <input
-          className="input"
-          value={nameValue}
-          placeholder={t('settings.addCategoryEn')}
-          onChange={(event) => onNameChange(event.target.value)}
-        />
-        <input
-          className="input"
-          dir="rtl"
-          value={nameArValue}
-          placeholder={t('settings.addCategoryAr')}
-          onChange={(event) => onNameArChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              onAdd();
-            }
-          }}
-        />
-        <button type="button" className="btn-secondary h-10 w-full p-0 sm:w-10" onClick={onAdd} title={t('settings.addCategory')}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </div>
-      <div className="mt-4 space-y-3">
-        {categories.length === 0 ? <p className="text-sm text-gray-500">{t('common.noEntries')}</p> : null}
-        {categories.map((category) => (
-          <div key={category.id} className="grid gap-2 rounded-md border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-center">
-            <input
-              className="input bg-white"
-              value={category.name}
-              onChange={(event) => onUpdate(category.id, { name: event.target.value })}
-            />
-            <input
-              className="input bg-white"
-              dir="rtl"
-              value={category.nameAr}
-              onChange={(event) => onUpdate(category.id, { nameAr: event.target.value })}
-            />
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                checked={category.active}
-                onChange={(event) => onUpdate(category.id, { active: event.target.checked })}
-              />
-              {t('common.active')}
-            </label>
-            <button type="button" className="btn-secondary h-10 w-full p-0 text-red-600 hover:text-red-700 sm:w-10" onClick={() => onRemove(category.id)} title={t('settings.removeTitle', { item: category.name })}>
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 
