@@ -1,12 +1,10 @@
 import { Filter, Search, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import type { RequestFiltersState } from '../types/request';
-import type { Service } from '../types/service';
 import { REQUEST_STATUS_OPTIONS } from '../utils/constants';
 
 interface RequestFiltersProps {
   filters: RequestFiltersState;
-  services: Service[];
   cities: string[];
   onChange: (filters: RequestFiltersState) => void;
 }
@@ -15,16 +13,15 @@ const emptyFilters: RequestFiltersState = {
   search: '',
   status: 'all',
   city: '',
-  serviceId: '',
   urgentOnly: false,
 };
 
-export default function RequestFilters({ filters, services, cities, onChange }: RequestFiltersProps) {
+export default function RequestFilters({ filters, cities, onChange }: RequestFiltersProps) {
   const { t } = useLanguage();
 
   return (
     <div className="panel p-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto_auto]">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_auto_auto]">
         <label className="relative">
           <Search className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
           <input
@@ -54,18 +51,6 @@ export default function RequestFilters({ filters, services, cities, onChange }: 
           {cities.map((city) => (
             <option key={city} value={city}>
               {city}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input"
-          value={filters.serviceId}
-          onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
-        >
-          <option value="">{t('requests.allServices')}</option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name}
             </option>
           ))}
         </select>

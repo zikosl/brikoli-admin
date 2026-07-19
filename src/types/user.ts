@@ -38,7 +38,8 @@ export interface ClientUser extends BaseUser {
 export interface WorkerUser extends BaseUser {
   role: 'worker';
   phoneNumber: string;
-  services: string[];
+  categoryIds: string[];
+  subCategoryIds: string[];
   city: string;
   available: boolean;
   active: boolean;
@@ -55,7 +56,8 @@ export interface WorkerProfileFormValues {
   email: string;
   phoneNumber: string;
   city: string;
-  services: string[];
+  categoryIds: string[];
+  subCategoryIds: string[];
   available: boolean;
   active: boolean;
   profileImage: string;
@@ -68,7 +70,8 @@ export interface WorkerInvite {
   fullName: string;
   email: string;
   phoneNumber: string;
-  services: string[];
+  categoryIds: string[];
+  subCategoryIds: string[];
   city: string;
   available: boolean;
   active: boolean;
@@ -88,7 +91,8 @@ export interface UserUpdateInput {
   active?: boolean;
   profileImage?: string;
   pushTokens?: string[];
-  services?: string[];
+  categoryIds?: string[];
+  subCategoryIds?: string[];
   available?: boolean;
   ratingAverage?: number;
   completedJobs?: number;

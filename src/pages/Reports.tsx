@@ -18,11 +18,9 @@ import StatCard from '../components/StatCard';
 import { useLanguage } from '../context/LanguageContext';
 import { getRatings } from '../services/ratingService';
 import { getRequests } from '../services/requestService';
-import { getServices } from '../services/serviceService';
 import { getWorkers } from '../services/userService';
 import type { Rating } from '../types/rating';
 import type { ServiceRequest } from '../types/request';
-import type { Service } from '../types/service';
 import type { WorkerUser } from '../types/user';
 import { CHART_COLORS, REQUEST_STATUS_OPTIONS } from '../utils/constants';
 
@@ -56,7 +54,6 @@ export default function Reports() {
   const { t } = useLanguage();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [workers, setWorkers] = useState<WorkerUser[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,15 +64,13 @@ export default function Reports() {
       setError(null);
 
       try {
-        const [requestsData, workersData, servicesData, ratingsData] = await Promise.all([
+        const [requestsData, workersData, ratingsData] = await Promise.all([
           getRequests(),
           getWorkers(),
-          getServices(),
           getRatings(),
         ]);
         setRequests(requestsData);
         setWorkers(workersData);
-        setServices(servicesData);
         setRatings(ratingsData);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : t('reports.loadError'));
@@ -86,11 +81,6 @@ export default function Reports() {
 
     void load();
   }, []);
-
-  const serviceNameById = useMemo(
-    () => new Map(services.map((service) => [service.id, service.name])),
-    [services],
-  );
 
   const workerNameById = useMemo(
     () => new Map(workers.map((worker) => [worker.uid, worker.fullName])),
@@ -107,8 +97,8 @@ export default function Reports() {
   );
 
   const requestsByService = useMemo(
-    () => countBy(requests, (request) => serviceNameById.get(request.serviceId) ?? request.serviceName, t('reports.unknown')),
-    [requests, serviceNameById, t],
+    () => countBy(requests, (request) => request.serviceName, t('reports.unknown')),
+    [requests, t],
   );
 
   const requestsByCity = useMemo(() => countBy(requests, (request) => request.city, t('reports.unknown')), [requests, t]);

@@ -6,7 +6,6 @@ import {
   Clock,
   Settings2,
   Users,
-  Wrench,
   XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -19,11 +18,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { getRatings } from '../services/ratingService';
 import { getRequests } from '../services/requestService';
 import { subscribeToRealtime } from '../services/realtimeService';
-import { getServices } from '../services/serviceService';
 import { getUsers } from '../services/userService';
 import type { Rating } from '../types/rating';
 import type { ServiceRequest } from '../types/request';
-import type { Service } from '../types/service';
 import type { AppUser, ClientUser, WorkerUser } from '../types/user';
 import { REQUEST_STATUS_OPTIONS } from '../utils/constants';
 import { formatDate } from '../utils/formatDate';
@@ -35,7 +32,6 @@ const DASHBOARD_REFRESH_INTERVAL_MS = 10000;
 export default function Dashboard() {
   const { locale, t } = useLanguage();
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,15 +47,13 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        const [usersData, servicesData, requestsData, ratingsData] = await Promise.all([
+        const [usersData, requestsData, ratingsData] = await Promise.all([
           getUsers(),
-          getServices(),
           getRequests(),
           getRatings(),
         ]);
         if (active) {
           setUsers(usersData);
-          setServices(servicesData);
           setRequests(requestsData);
           setRatings(ratingsData);
         }
@@ -97,14 +91,14 @@ export default function Dashboard() {
       totalClients: clients.length,
       totalWorkers: workers.length,
       activeWorkers: workers.filter((worker) => worker.active).length,
-      totalServices: services.length,
+      totalServices: new Set(requests.map((request) => request.subCategoryId ?? request.categoryId).filter(Boolean)).size,
       pendingRequests: requests.filter((request) => request.status === 'pending').length,
       assignedRequests: requests.filter((request) => request.status === 'assigned').length,
       completedRequests: requests.filter((request) => request.status === 'completed').length,
       cancelledRequests: requests.filter((request) => request.status === 'cancelled').length,
       urgentRequests: requests.filter((request) => request.urgency === 'urgent').length,
     }),
-    [clients.length, workers, services.length, requests],
+    [clients.length, workers, requests],
   );
 
   const statusChartData = useMemo(
@@ -159,7 +153,7 @@ export default function Dashboard() {
         <StatCard title={t('dashboard.totalClients')} value={stats.totalClients} icon={Users} tone="blue" />
         <StatCard title={t('dashboard.totalWorkers')} value={stats.totalWorkers} icon={BriefcaseBusiness} tone="emerald" />
         <StatCard title={t('dashboard.activeWorkers')} value={stats.activeWorkers} icon={CheckCircle2} tone="emerald" />
-        <StatCard title={t('dashboard.totalServices')} value={stats.totalServices} icon={Wrench} tone="violet" />
+        <StatCard title={t('dashboard.totalServices')} value={stats.totalServices} icon={Settings2} tone="violet" />
         <StatCard title={t('dashboard.pendingRequests')} value={stats.pendingRequests} icon={Clock} tone="amber" />
         <StatCard title={t('dashboard.assignedRequests')} value={stats.assignedRequests} icon={ClipboardList} tone="blue" />
         <StatCard title={t('dashboard.completedRequests')} value={stats.completedRequests} icon={CheckCircle2} tone="emerald" />

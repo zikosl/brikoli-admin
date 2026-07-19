@@ -3,16 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import DataTable, { type TableColumn } from '../components/DataTable';
 import WorkerFormModal from '../components/WorkerFormModal';
 import { useLanguage } from '../context/LanguageContext';
-import { getServices } from '../services/serviceService';
+import { getCategories } from '../services/categoryService';
 import { createWorkerProfile, getWorkers, toggleUserActive, updateUser } from '../services/userService';
-import type { Service } from '../types/service';
+import type { Category } from '../types/category';
 import type { WorkerProfileFormValues, WorkerUser } from '../types/user';
 import { formatDate } from '../utils/formatDate';
 
 export default function Workers() {
   const { locale, t } = useLanguage();
   const [workers, setWorkers] = useState<WorkerUser[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +24,9 @@ export default function Workers() {
     setError(null);
 
     try {
-      const [workersData, servicesData] = await Promise.all([getWorkers(), getServices()]);
+      const [workersData, categoriesData] = await Promise.all([getWorkers(), getCategories(true)]);
       setWorkers(workersData);
-      setServices(servicesData);
+      setCategories(categoriesData);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t('workers.loadError'));
     } finally {
@@ -38,10 +38,13 @@ export default function Workers() {
     void load();
   }, []);
 
-  const serviceNameById = useMemo(
-    () => new Map(services.map((service) => [service.id, service.name])),
-    [services],
-  );
+  const serviceNameById = useMemo(() => {
+    const entries = categories.flatMap((category) => [
+      [category.id, category.title] as const,
+      ...category.subCategories.map((subCategory) => [subCategory.id, subCategory.title] as const),
+    ]);
+    return new Map(entries);
+  }, [categories]);
 
   const filteredWorkers = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -108,8 +111,8 @@ export default function Workers() {
       header: t('common.services'),
       render: (worker) => (
         <div className="flex max-w-sm flex-wrap gap-1">
-          {worker.services.length > 0 ? (
-            worker.services.map((serviceId) => (
+          {[...worker.categoryIds, ...worker.subCategoryIds].length > 0 ? (
+            [...worker.categoryIds, ...worker.subCategoryIds].map((serviceId) => (
               <span key={serviceId} className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
                 {serviceNameById.get(serviceId) ?? serviceId}
               </span>
@@ -205,7 +208,7 @@ export default function Workers() {
       <WorkerFormModal
         open={modalOpen}
         worker={selectedWorker}
-        services={services}
+        categories={categories}
         onClose={() => setModalOpen(false)}
         onSubmit={handleSubmit}
       />

@@ -7,16 +7,13 @@ import StatusBadge from '../components/StatusBadge';
 import { useLanguage } from '../context/LanguageContext';
 import { getRequests } from '../services/requestService';
 import { subscribeToRealtime } from '../services/realtimeService';
-import { getServices } from '../services/serviceService';
 import type { RequestFiltersState, ServiceRequest } from '../types/request';
-import type { Service } from '../types/service';
 import { formatDate } from '../utils/formatDate';
 
 const initialFilters: RequestFiltersState = {
   search: '',
   status: 'all',
   city: '',
-  serviceId: '',
   urgentOnly: false,
 };
 
@@ -33,7 +30,6 @@ const createdAtMillis = (request: ServiceRequest) => {
 export default function Requests() {
   const { locale, t } = useLanguage();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [filters, setFilters] = useState<RequestFiltersState>(initialFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +44,9 @@ export default function Requests() {
       setError(null);
 
       try {
-        const [requestsData, servicesData] = await Promise.all([getRequests(), getServices()]);
+        const requestsData = await getRequests();
         if (active) {
           setRequests(requestsData);
-          setServices(servicesData);
         }
       } catch (loadError) {
         if (active) {
@@ -96,10 +91,9 @@ export default function Requests() {
           request.clientPhone.toLowerCase().includes(needle);
         const matchesStatus = filters.status === 'all' || request.status === filters.status;
         const matchesCity = !filters.city || request.city === filters.city;
-        const matchesService = !filters.serviceId || request.serviceId === filters.serviceId;
         const matchesUrgency = !filters.urgentOnly || request.urgency === 'urgent';
 
-        return matchesSearch && matchesStatus && matchesCity && matchesService && matchesUrgency;
+        return matchesSearch && matchesStatus && matchesCity && matchesUrgency;
       });
   }, [requests, filters]);
 
@@ -152,7 +146,7 @@ export default function Requests() {
 
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
 
-      <RequestFilters filters={filters} services={services} cities={cities} onChange={setFilters} />
+      <RequestFilters filters={filters} cities={cities} onChange={setFilters} />
 
       <DataTable
         data={filteredRequests}

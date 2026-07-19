@@ -28,10 +28,10 @@ import {
   updateRequest,
   updateRequestStatus,
 } from '../services/requestService';
-import { getServices } from '../services/serviceService';
+import { getCategories } from '../services/categoryService';
 import { getWorkers } from '../services/userService';
 import type { RequestStatus, ServiceRequest } from '../types/request';
-import type { Service } from '../types/service';
+import type { Category } from '../types/category';
 import type { WorkerUser } from '../types/user';
 import { REQUEST_STATUS_OPTIONS } from '../utils/constants';
 import { formatDate } from '../utils/formatDate';
@@ -53,7 +53,7 @@ export default function RequestDetails() {
   const { id } = useParams<{ id: string }>();
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [workers, setWorkers] = useState<WorkerUser[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeTab, setActiveTab] = useState<DetailsTab>('overview');
   const [selectedWorkerId, setSelectedWorkerId] = useState('');
   const [workerSearch, setWorkerSearch] = useState('');
@@ -78,10 +78,10 @@ export default function RequestDetails() {
     setError(null);
 
     try {
-      const [requestData, workersData, servicesData] = await Promise.all([getRequestById(id), getWorkers(), getServices()]);
+      const [requestData, workersData, categoriesData] = await Promise.all([getRequestById(id), getWorkers(), getCategories(true)]);
       setRequest(requestData);
       setWorkers(workersData.filter((worker) => worker.active));
-      setServices(servicesData);
+      setCategories(categoriesData);
       setSelectedWorkerId(requestData.assignedWorkerId ?? '');
       setAdminNotes(requestData.adminNotes ?? '');
       setAssignmentNote('');
@@ -97,8 +97,14 @@ export default function RequestDetails() {
   }, [id]);
 
   const serviceNameById = useMemo(
-    () => new Map(services.map((service) => [service.id, service.name])),
-    [services],
+    () =>
+      new Map(
+        categories.flatMap((category) => [
+          [category.id, category.title] as const,
+          ...category.subCategories.map((subCategory) => [subCategory.id, subCategory.title] as const),
+        ]),
+      ),
+    [categories],
   );
 
   const selectedWorker = useMemo(
@@ -120,13 +126,13 @@ export default function RequestDetails() {
 
     const scoreWorker = (worker: WorkerUser) => {
       const sameCity = worker.city.toLowerCase() === request.city.toLowerCase();
-      const sameService = worker.services.includes(request.serviceId);
+      const sameService = workerMatchesRequest(worker, request);
       return (sameCity ? 4 : 0) + (sameService ? 4 : 0) + (worker.available ? 1 : 0) + worker.ratingAverage / 10;
     };
 
     return [...workers]
       .filter((worker) => {
-        const serviceNames = worker.services.map((serviceId) => serviceNameById.get(serviceId) ?? serviceId).join(' ');
+        const serviceNames = [...worker.categoryIds, ...worker.subCategoryIds].map((serviceId) => serviceNameById.get(serviceId) ?? serviceId).join(' ');
         const matchesSearch =
           !needle ||
           worker.fullName.toLowerCase().includes(needle) ||
@@ -139,7 +145,7 @@ export default function RequestDetails() {
         const matchesSmartFilter =
           matchFilter === 'all' ||
           (matchFilter === 'city' && worker.city.toLowerCase() === request.city.toLowerCase()) ||
-          (matchFilter === 'service' && worker.services.includes(request.serviceId));
+          (matchFilter === 'service' && workerMatchesRequest(worker, request));
 
         return matchesSearch && matchesAvailability && matchesSmartFilter;
       })
@@ -454,9 +460,9 @@ export default function RequestDetails() {
                 {filteredWorkers.map((worker) => {
                   const selected = selectedWorkerId === worker.uid;
                   const assigned = request.assignedWorkerId === worker.uid;
-                  const serviceNames = worker.services.map((serviceId) => serviceNameById.get(serviceId) ?? serviceId);
+                  const serviceNames = [...worker.categoryIds, ...worker.subCategoryIds].map((serviceId) => serviceNameById.get(serviceId) ?? serviceId);
                   const cityMatch = worker.city.toLowerCase() === request.city.toLowerCase();
-                  const serviceMatch = worker.services.includes(request.serviceId);
+                  const serviceMatch = workerMatchesRequest(worker, request);
 
                   return (
                     <button
@@ -601,6 +607,18 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 function MatchPill({ children }: { children: string }) {
   return <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700">{children}</span>;
+}
+
+function workerMatchesRequest(worker: WorkerUser, request: ServiceRequest) {
+  if (request.subCategoryId && worker.subCategoryIds.includes(request.subCategoryId)) {
+    return true;
+  }
+
+  if (request.categoryId && worker.categoryIds.includes(request.categoryId)) {
+    return true;
+  }
+
+  return false;
 }
 
 function MediaPanel({ title, emptyTitle, images }: { title: string; emptyTitle: string; images: string[] }) {

@@ -45,7 +45,8 @@ interface ApiServiceRequest {
   clientPhone: string;
   clientPhoneKey?: string | null;
   telegramId?: string | null;
-  serviceId: string;
+  categoryId?: string | null;
+  subCategoryId?: string | null;
   serviceName: string;
   description: string;
   address: string;
@@ -78,7 +79,8 @@ const mapRequest = (request: ApiServiceRequest): ServiceRequest => ({
   clientPhone: request.clientPhone,
   clientPhoneKey: request.clientPhoneKey ?? undefined,
   telegramId: request.telegramId ?? undefined,
-  serviceId: request.serviceId,
+  categoryId: request.categoryId ?? undefined,
+  subCategoryId: request.subCategoryId ?? undefined,
   serviceName: request.serviceName,
   description: request.description,
   address: request.address,

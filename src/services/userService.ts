@@ -4,7 +4,8 @@ import type { AdminFormValues, AdminUpdateInput, AdminUser, AppUser, ClientUser,
 type ApiUserRole = 'ADMIN' | 'CLIENT' | 'WORKER';
 
 interface ApiWorkerProfile {
-  services: string[];
+  categoryIds?: string[];
+  subCategoryIds?: string[];
   available: boolean;
   ratingAverage: number;
   completedJobs: number;
@@ -56,7 +57,8 @@ const mapUser = (user: ApiUser): AppUser => {
       ...base,
       role: 'worker',
       phoneNumber: user.phoneNumber ?? '',
-      services: user.workerProfile?.services ?? [],
+      categoryIds: user.workerProfile?.categoryIds ?? [],
+      subCategoryIds: user.workerProfile?.subCategoryIds ?? [],
       city: user.city ?? '',
       available: user.workerProfile?.available ?? false,
       active: user.active,
@@ -149,7 +151,8 @@ export async function createWorkerProfile(values: WorkerProfileFormValues) {
 
 export async function updateUser(uid: string, updates: UserUpdateInput) {
   const hasWorkerFields =
-    updates.services !== undefined ||
+    updates.categoryIds !== undefined ||
+    updates.subCategoryIds !== undefined ||
     updates.available !== undefined ||
     updates.ratingAverage !== undefined ||
     updates.completedJobs !== undefined ||

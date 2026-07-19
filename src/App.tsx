@@ -11,7 +11,6 @@ import Login from './pages/Login';
 import Reports from './pages/Reports';
 import RequestDetails from './pages/RequestDetails';
 import Requests from './pages/Requests';
-import Services from './pages/Services';
 import Settings from './pages/Settings';
 import Workers from './pages/Workers';
 
@@ -57,7 +56,6 @@ export default function App() {
             <Route element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="/categories" element={<Categories />} />
-              <Route path="/services" element={<Services />} />
               <Route path="/workers" element={<Workers />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/admins" element={<Admins />} />

@@ -43,7 +43,8 @@ export interface ServiceRequest {
   clientPhone: string;
   clientPhoneKey?: string;
   telegramId?: string;
-  serviceId: string;
+  categoryId?: string;
+  subCategoryId?: string;
   serviceName: string;
   description: string;
   address: string;
@@ -68,7 +69,6 @@ export interface RequestFiltersState {
   search: string;
   status: RequestStatus | 'all';
   city: string;
-  serviceId: string;
   urgentOnly: boolean;
 }
 

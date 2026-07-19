@@ -1,13 +1,13 @@
 import { X } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import type { Service } from '../types/service';
+import type { Category } from '../types/category';
 import type { WorkerProfileFormValues, WorkerUser } from '../types/user';
 
 interface WorkerFormModalProps {
   open: boolean;
   worker?: WorkerUser | null;
-  services: Service[];
+  categories: Category[];
   onClose: () => void;
   onSubmit: (values: WorkerProfileFormValues) => Promise<void>;
 }
@@ -17,14 +17,15 @@ const emptyValues: WorkerProfileFormValues = {
   email: '',
   phoneNumber: '',
   city: '',
-  services: [],
+  categoryIds: [],
+  subCategoryIds: [],
   available: true,
   active: true,
   profileImage: '',
   password: '',
 };
 
-export default function WorkerFormModal({ open, worker, services, onClose, onSubmit }: WorkerFormModalProps) {
+export default function WorkerFormModal({ open, worker, categories, onClose, onSubmit }: WorkerFormModalProps) {
   const { t } = useLanguage();
   const [values, setValues] = useState<WorkerProfileFormValues>(emptyValues);
   const [saving, setSaving] = useState(false);
@@ -42,7 +43,8 @@ export default function WorkerFormModal({ open, worker, services, onClose, onSub
             email: worker.email,
             phoneNumber: worker.phoneNumber,
             city: worker.city,
-            services: worker.services,
+            categoryIds: worker.categoryIds,
+            subCategoryIds: worker.subCategoryIds,
             available: worker.available,
             active: worker.active,
             profileImage: worker.profileImage,
@@ -52,12 +54,12 @@ export default function WorkerFormModal({ open, worker, services, onClose, onSub
     );
   }, [open, worker]);
 
-  const toggleService = (serviceId: string) => {
+  const toggleValue = (key: 'categoryIds' | 'subCategoryIds', id: string) => {
     setValues((current) => ({
       ...current,
-      services: current.services.includes(serviceId)
-        ? current.services.filter((id) => id !== serviceId)
-        : [...current.services, serviceId],
+      [key]: current[key].includes(id)
+        ? current[key].filter((item) => item !== id)
+        : [...current[key], id],
     }));
   };
 
@@ -155,20 +157,39 @@ export default function WorkerFormModal({ open, worker, services, onClose, onSub
           </label>
           <div className="space-y-2">
             <span className="label">{t('workers.assignedServices')}</span>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {services.map((service) => (
-                <label
-                  key={service.id}
-                  className="flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
-                >
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                    checked={values.services.includes(service.id)}
-                    onChange={() => toggleService(service.id)}
-                  />
-                  <span>{service.name}</span>
-                </label>
+            <div className="space-y-4 rounded-lg border border-gray-200 p-3">
+              {categories.map((category) => (
+                <div key={category.id} className="space-y-2">
+                  <button
+                    type="button"
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium ring-1 ${
+                      values.categoryIds.includes(category.id)
+                        ? 'bg-brand-600 text-white ring-brand-600'
+                        : 'bg-white text-gray-700 ring-gray-200 hover:bg-gray-50'
+                    }`}
+                    onClick={() => toggleValue('categoryIds', category.id)}
+                  >
+                    {category.title}
+                  </button>
+                  {category.subCategories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 ps-3">
+                      {category.subCategories.map((subCategory) => (
+                        <button
+                          key={subCategory.id}
+                          type="button"
+                          className={`rounded-full px-3 py-1.5 text-xs font-medium ring-1 ${
+                            values.subCategoryIds.includes(subCategory.id)
+                              ? 'bg-emerald-600 text-white ring-emerald-600'
+                              : 'bg-gray-50 text-gray-700 ring-gray-200 hover:bg-gray-100'
+                          }`}
+                          onClick={() => toggleValue('subCategoryIds', subCategory.id)}
+                        >
+                          {subCategory.title}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               ))}
             </div>
           </div>

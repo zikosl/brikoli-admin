@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Tags,
   Users,
-  Wrench,
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
@@ -19,7 +18,6 @@ const navItems = [
   { labelKey: 'nav.dashboard', to: '/', icon: LayoutDashboard },
   { labelKey: 'nav.requests', to: '/requests', icon: ClipboardList },
   { labelKey: 'nav.categories', to: '/categories', icon: Tags },
-  { labelKey: 'nav.services', to: '/services', icon: Wrench },
   { labelKey: 'nav.workers', to: '/workers', icon: BriefcaseBusiness },
   { labelKey: 'nav.clients', to: '/clients', icon: Users },
   { labelKey: 'nav.reports', to: '/reports', icon: BarChart3 },
